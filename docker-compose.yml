@@ -1,0 +1,37 @@
+version: '3'
+services:
+  spire-server:
+    build: ./spire-server
+    hostname: spire-server
+    tty: true
+  backend:
+    build: ./back-end
+    hostname: back-end
+    tty: true
+    links:
+      - spire-server
+  frontend:
+    build: ./front-end
+    tty: true
+    links:
+      - spire-server
+      - backend
+      - users-service
+    ports:
+    - 9000:9000
+  users-service:
+    build: ./users-service
+    hostname: users-service
+    tty: true
+    links:
+    - spire-server
+  wso2is:
+    build: ./wso2-is
+    hostname: wso2-is
+    tty: true
+    ports:
+    - 9443:9443
+    links:
+      - spire-server
+
+
