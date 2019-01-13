@@ -1,12 +1,15 @@
-# SPIFFE based KeyStore/TrustStore and Tomcat
+# SPIFFE based KeyStore/TrustStore and OAuth2.0 with WSO2 IS Authorization Server
 
 This demo shows an example using a SPIFFE based KeyStore implemented in the [JAVA-SPIFFE library](https://github.com/spiffe/java-spiffe)
-to authenticate Tomcat's workloads.
+to authenticate workloads and then to authorize those workloads under OAuth 2.0 protocol. This extends the 
+[tomcat demo hosted by SPIFEE community](https://github.com/spiffe/spiffe-example/tree/master/java-keystore-tomcat-demo) demonstrated authentication
+to be used in OAuth 2.0 MTLS based client authentication to be integrated with the OAuth2.0 based systems.
 
 The SPIFFE KeyStore interacts with the Workload API to fetch asynchronously the SVIDs and handle the certificates in memory. Certificates
 updates are pushed by the Workload API before expiration.  
 
-mTLS connections are handled by the Tomcat, that has a connector configured to use a `Spiffe` KeyStoreType.
+mTLS connections are handled by the Tomcat, that has a connector configured to use a `Spiffe` KeyStoreType. As WSO2 IS also based on tomcat, 
+this is used as it is.
 
 One of the Tomcats is configured with a [Java Servlet Filter](../spiffe-tomcat-filter) to grant access to APIs based on the SPIFFE ID of the client. 
 
@@ -23,7 +26,7 @@ This demo is composed of 4 containers as seen in the following diagram:
 
 ![spiffe-tomcat-demo](spiffe-oauth.png)
 
-Tomcats have a connector configured to listen on port 8443, to connect with mTLS, using the custom KeyStoreType `Spiffe`.
+WSO2 IS has a connector configured to listen on port 9443, to connect with mTLS, using the custom KeyStoreType `Spiffe`.
 That KeyStore connects with the Workload API to receive automatically the SVID updates that are used during the handshake
 when establishing a TLS connection. It also validates the Peer's SPIFFE ID. 
 
@@ -100,6 +103,7 @@ The code is available in this [repo](../spiffe-tomcat-filter).
 | Front-end 1     | unix:uid:1000 | spiffe://example.org/front-end1     | spiffe://example.org/host2 | 
 | Front-end 2     | unix:uid:1001 | spiffe://example.org/front-end2     | spiffe://example.org/host2 | 
 | Proxy-Service   | unix:uid:1000 | spiffe://example.org/proxy-service  | spiffe://example.org/host3 | 
+| WSO2-IS         | unix:uid:1002 | spiffe://example.org/wso2-is        | spiffe://example.org/host4 |
 
 ### Run the demo
 
@@ -182,6 +186,13 @@ SPIFFE ID:	spiffe://example.org/proxy-service
 Parent ID:	spiffe://example.org/host3
 TTL:		120
 Selector:	unix:uid:1000
+
++ ./spire-server entry create -parentID spiffe://example.org/host4 -spiffeID spiffe://example.org/wso2-is -selector unix:uid:1002 -ttl 120
+Entry ID:	aabc746a-3a68-40ca-cccc-0aa062d12588
+SPIFFE ID:	spiffe://example.org/wso2-is
+Parent ID:	spiffe://example.org/host4
+TTL:		120
+Selector:	unix:uid:1002
 
 ```
 
@@ -385,8 +396,47 @@ HTTP Status 403 ? Forbidden
 
 `sslCurl` has the SPIFFE ID `spiffe://example.org/front-end2` that is not authorized in the Tomcat Filter.
 
+##### 10. Test Authorization with OAuth2.0
 
-##### 10. Clean the environment 
+###### 10.1 Introduce WSO2-IS to SPIRE server
+
+On the console run:
+```
+$ docker-compose exec spire-server ./spire-server token generate -spiffeID spiffe://example.org/host4
+
+Token: ced63640-d5d4-4d0a-afd5-60617498adde
+```
+Copy the token and run:
+
+```
+$ docker-compose exec wso2is ./spire-agent run -joinToken {token}
+
+DEBU[0000] Requesting SVID for spiffe://example.org/wso2-is  subsystem_name=manager
+DEBU[0000] Requesting SVID for spiffe://example.org/host4  subsystem_name=manager
+INFO[0000] Starting workload API                         subsystem_name=endpoints
+```
+Now the SPIRE Agent is running in the host4 and has started the workload API.
+
+###### 10.2 Start WSO2 IS
+```
+$​​docker-compose exec wso2is /opt/wso2-authz/start-wso2.sh
+
+[2019-01-13 14:34:58,697]  INFO {org.wso2.carbon.core.internal.CarbonCoreActivator} -  Starting WSO2 Carbon...
+[2019-01-13 14:34:58,698]  INFO {org.wso2.carbon.core.internal.CarbonCoreActivator} -  Operating System : Linux 4.13.0-39-generic, amd64
+```
+Once the server is started we will try to call the OAuth token endpoint to get a token based on the trust established with MTLS connection.
+```
+$ ​​docker-compose exec frontend bash
+
+# cd /opt/sslCurl
+
+​​#./sslCurl2.sh https://wso2is:9443/oauth2/token​
+Jan 13, 2019 11:09:00 AM spiffe.provider.CertificateUtils checkSpiffeId
+INFO: SPIFFE ID received Optional[spiffe://example.org/wso2-is]
+{"access_token":"e06f11d3-833d-35a3-9548-ab65cdbc5458","token_type":"Bearer","expires_in":3600}
+```
+Now we can use this token to consume other workload who trust the WSO2 IS authorization server.
+##### 11. Clean the environment 
 
 Stop the docker containers:
 
