@@ -55,7 +55,7 @@ to the NGINX Proxy.
 The following diagram shows a simplified version of the workloads only, with their SPIFFE IDs and the interactions between
 each other: 
 
-![diagram-simple](spiffe-oauth.png)
+![diagram-simple](spiffe-wso2-oauth.png)
 
 
 The `WEB-APP` that gets the SPIFFE ID `spiffe://example.org/front-end1` is allowed to access the API `/tasks` on the Backend, 
