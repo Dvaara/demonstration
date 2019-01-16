@@ -8,13 +8,8 @@ to be used in OAuth 2.0 MTLS based client authentication to be integrated with t
 The SPIFFE KeyStore interacts with the Workload API to fetch asynchronously the SVIDs and handle the certificates in memory. Certificates
 updates are pushed by the Workload API before expiration.  
 
-mTLS connections are handled by the Tomcat, that has a connector configured to use a `Spiffe` KeyStoreType. As WSO2 IS also based on tomcat, 
+mTLS connections are handled at the tomcat level, that has a connector configured to use a `Spiffe` KeyStoreType. As WSO2 IS also based on tomcat, 
 this is used as it is.
-
-One of the Tomcats is configured with a [Java Servlet Filter](../spiffe-tomcat-filter) to grant access to APIs based on the SPIFFE ID of the client. 
-
-It also demonstrates that a standalone Java Application can use the SPIFFE Provider and interact with both a Java App 
-running on Tomcat and a SPIFFE Nginx. 
 
 This demo is based on SPIRE version 0.6.0.
 
@@ -22,7 +17,11 @@ This demo is based on SPIRE version 0.6.0.
 
 ### Components
 
-This demo is composed of 4 containers as seen in the following diagram:
+This demo is composed of 3 containers 
+- spire-server
+- wso2-is in host4 with it's spire-agent
+- ssh cURL client with it's spire-agent at host2
+Below is the ultimate solution we are heading towards.
 
 ![spiffe-tomcat-demo](spiffe-oauth.png)
 
@@ -39,61 +38,24 @@ Tomcat connector:
             scheme="https" secure="true" SSLEnabled="true"
             keystoreFile="" keystorePass=""
             keystoreType="Spiffe"
-            clientAuth="true" sslProtocol="TLS"/>
+            clientAuth="want" sslProtocol="TLS"/>
+```
+We are not enforcing 'clientAuth' with 'true', to allow other clients to connect with WSO2 IS without MTLS.
+The trusted SPIFFE ID is configured in the `java.security` file through the `ssl.spiffe.accept`. In the WSO2-IS it looks as follows: 
+
+```
+ssl.spiffe.accept=spiffe://example.org/front-end1, spiffe://example.org/front-end2
 ```
 
-The trusted SPIFFE ID is configured in the `java.security` file through the `ssl.spiffe.accept`. In the Backend it looks as follows: 
-
-```
-ssl.spiffe.accept=spiffe://example.org/front-end
-```
-
-The _Standalone Java App_ in the diagram is a simple cURL app that takes an URL as a parameter and connects over mTLS using 
-the SPIFFE Provider. It's used to access an `API` running on the _Backend_ Tomcat and to get data from `Users Service` connecting
-to the NGINX Proxy. 
+The _ssh-cURL_ in the diagram is a simple cURL app that takes an URL as a parameter and connects over mTLS using 
+the SPIFFE Provider. It's used to access any `API` running on the trusted network, specifically to call the oauth2 token endpoint
+in this case of WSO2 IS.
 
 The following diagram shows a simplified version of the workloads only, with their SPIFFE IDs and the interactions between
 each other: 
 
 ![diagram-simple](spiffe-wso2-oauth.png)
 
-
-The `WEB-APP` that gets the SPIFFE ID `spiffe://example.org/front-end1` is allowed to access the API `/tasks` on the Backend, 
-whereas `SSL-CURL-JAVA` that gets the SPIFFE ID `spiffe://example.org/front-end2` is allowed to access the API `/projects`. 
-That is configured through the file `<tomcat>/conf/web.xml`: 
-
-```
-    <filter>
-        <filter-name>SpiffeFilter1</filter-name>
-        <filter-class>spiffe.filter.SpiffeFilter</filter-class>
-        <init-param>
-            <param-name>accept-spiffe-id</param-name>
-            <param-value>spiffe://example.org/front-end1</param-value>
-        </init-param>
-    </filter>
-
-    <filter-mapping>
-        <filter-name>SpiffeFilter1</filter-name>
-        <url-pattern>/tasks/*</url-pattern>
-    </filter-mapping>
-
-    <filter>
-        <filter-name>SpiffeFilter2</filter-name>
-        <filter-class>spiffe.filter.SpiffeFilter</filter-class>
-        <init-param>
-            <param-name>accept-spiffe-id</param-name>
-            <param-value>spiffe://example.org/front-end2</param-value>
-        </init-param>
-    </filter>
-
-    <filter-mapping>
-        <filter-name>SpiffeFilter2</filter-name>
-        <url-pattern>/projects/*</url-pattern>
-    </filter-mapping>
-```
-
-`SpiffeFilter` is a simple _Java Servlet Filter_ example to show how SPIFFE ID based filtering to multiple APIs can be implemented. 
-The code is available in this [repo](../spiffe-tomcat-filter). 
 
 #### Registration Entries
 
@@ -104,6 +66,8 @@ The code is available in this [repo](../spiffe-tomcat-filter).
 | Front-end 2     | unix:uid:1001 | spiffe://example.org/front-end2     | spiffe://example.org/host2 | 
 | Proxy-Service   | unix:uid:1000 | spiffe://example.org/proxy-service  | spiffe://example.org/host3 | 
 | WSO2-IS         | unix:uid:1002 | spiffe://example.org/wso2-is        | spiffe://example.org/host4 |
+
+In this demo we are only making use of Front-end 2 and WSO2-IS workloads.
 
 ### Run the demo
 
@@ -138,9 +102,12 @@ Creating javakeystoretomcatdemo_users-service_1 ... done
 Creating spiffeenvoydemo_backend_1 ... done
 Creating spiffeenvoydemo_frontend_1 ...
 Creating spiffeenvoydemo_frontend_1 ... done
+Creating spiffeenvoydemo_wso2is ...
+Creating spiffeenvoydemo_wso2is ... done
+
 ```
 
-##### 4. Run the SPIRE Server 
+##### 3. Run the SPIRE Server 
 
 On a console run:
 
@@ -152,7 +119,7 @@ INFO[0000] Starting gRPC server                          subsystem_name=endpoint
 INFO[0000] Starting HTTP server                          subsystem_name=endpoints 
 ```
 
-##### 5. Create the workloads entries
+##### 4. Create the workloads entries
 
 On a console run:
 
@@ -196,13 +163,13 @@ Selector:	unix:uid:1002
 
 ```
 
-##### 6. Generate Tokens
+##### 5. Generate Tokens 
 
-###### 6.1 Generate Agent Token for Back-end and Run the Agent
+###### 5.1 Generate Agent Token for Front-end SSH cURL client and Run the Agent
 
 On the console run:
 ```
-$ docker-compose exec spire-server ./spire-server token generate -spiffeID spiffe://example.org/host1
+$ docker-compose exec spire-server ./spire-server token generate -spiffeID spiffe://example.org/host2
 
 Token: b0cab4ab-ddcd-4403-862c-325fe599f661
 ```
@@ -210,195 +177,18 @@ Token: b0cab4ab-ddcd-4403-862c-325fe599f661
 Copy the token and run:
 
 ```
-# docker-compose exec backend ./spire-agent run -joinToken {token}
+# docker-compose exec frontend ./spire-agent run -joinToken  {token}
 
-DEBU[0000] Requesting SVID for spiffe://example.org/back-end  subsystem_name=manager
-DEBU[0000] Requesting SVID for spiffe://example.org/host1  subsystem_name=manager
-INFO[0000] Starting workload API                         subsystem_name=endpoints
-```
-
-Replace `{token}` by the generated token.
-
-###### 6.2 Generate Agent Token for Front-end and Run the Agent
-
-On the console run:
-```
-$ docker-compose exec spire-server ./spire-server token generate -spiffeID spiffe://example.org/host2
-
-Token: 81d70337-b255-446e-bb70-5eae5655a876
-```
-
-Copy the token and run:
-
-```
-# docker-compose exec frontend ./spire-agent run -joinToken {token}
-
-DEBU[0000] Requesting SVID for spiffe://example.org/back-end  subsystem_name=manager
+DEBU[0000] Requesting SVID for spiffe://example.org/front-end  subsystem_name=manager
 DEBU[0000] Requesting SVID for spiffe://example.org/host2  subsystem_name=manager
 INFO[0000] Starting workload API                         subsystem_name=endpoints
 ```
 
-Replace `{token}` by the generated token.
+Replace `{token}` by the generated token
 
-###### 6.3 Generate Agent Token for Users-service and Run the Agent
+##### 6. Test Authorization with OAuth2.0
 
-On the console run:
-```
-$ docker-compose exec spire-server ./spire-server token generate -spiffeID spiffe://example.org/host3
-
-Token: aed63640-d5d4-4d0a-afd5-60617498adde
-```
-
-Copy the token and run:
-
-```
-# docker-compose exec users-service ./spire-agent run -joinToken {token}
-
-DEBU[0000] Requesting SVID for spiffe://example.org/back-end  subsystem_name=manager
-DEBU[0000] Requesting SVID for spiffe://example.org/host2  subsystem_name=manager
-INFO[0000] Starting workload API                         subsystem_name=endpoints
-```
-
-Replace `{token}` by the generated token.
-
-##### 7. Start the Applications
-
-###### 7.1 Run the Back-end
-
-On a console run:
-
-```
-$ docker-compose exec backend /opt/back-end/start-tomcat.sh
-
-INFO [main] org.apache.catalina.startup.Catalina.start Server startup 
-```
-
-###### 7.2 Run the Front-end Web-App
-
-On a console run:
-
-```
-$ docker-compose exec frontend /opt/front-end/start-tomcat.sh
-
-INFO [main] org.apache.catalina.startup.Catalina.start Server startup
-```
-
-###### 7.3 Run the Users-service along with the NGINX Proxy
-
-On a console run:
-
-```
-$ docker-compose exec users-service ./init.sh
-
-2018/08/22 12:14:51 Listening on port 8000...
-2018/08/22 12:14:51 [debug] 52#0: bind() 0.0.0.0:8443 #6 
-```
-
-
-##### 8. Open Web App
-
-Open a browser an go to [http://localhost:9000/tasks](http://localhost:9000/tasks)
-
-Then go to [http://localhost:9000/users](http://localhost:9000/users)
-
-The pages should be displayed without errors. 
-
-The page `/tasks` displays data that is fetched from the service running on the _Backend_
-The page `/users` displays data that is fetched from the _Users service_
-
-##### 8. Test the SPIFFE ID validation
-
-Stop Front-end Tomcat and start it with `frontend2` user:
-
-```
-$ docker-compose exec frontend chown frontend3 -R /opt/tomcat 
-$ docker-compose exec frontend /opt/front-end/start-tomcat.sh frontend3
-```
-
-Open a browser an go to [http://localhost:9000/tasks](http://localhost:9000/tasks)
-
-As the `frontend3` is not mapped in Spire Server registry, no SVID is issued and therefore the KeyStore doesn't have a 
-certificate to present during the handshake. 
-
-In the console there will be an error log: 
-
-```
-2018-08-06 12:25:18.863 ERROR 206 --- [nio-9000-exec-1] s.api.examples.demo.TasksController      : I/O error on GET request for "https://backend:8443/tasks/": java.security.cert.CertificateException: No trusted Certs; nested exception is javax.net.ssl.SSLHandshakeException: java.security.cert.CertificateException: No trusted Certs
-06-Aug-2018 12:25:26.674 SEVERE [grpc-default-executor-0] spiffe.api.svid.X509SVIDFetcher$1.onError Could not get SVID 
-PERMISSION_DENIED: no identity issued
-```
-
-Now add a workload entry with a SPIFFE ID `spiffe://example.org/front-end3`:
-
-```
-$ docker-compose exec spire-server ./spire-server entry create -parentID spiffe://example.org/host2 -spiffeID spiffe://example.org/front-end3 -selector unix:uid:1002 -ttl 120
-```
-
-After a while, try again [http://localhost:9000/tasks](http://localhost:9000/tasks). 
-
-This time the Backend has rejected the connection since the SPIFFE ID of the Frontend is not trusted: 
-
-```
-2018-08-06 12:29:42.416 ERROR 206 --- [nio-9000-exec-6] s.api.examples.demo.TasksController      : I/O error on GET request for "https://backend:8443/tasks/": Received fatal alert: certificate_unknown; nested exception is javax.net.ssl.SSLHandshakeException: Received fatal alert: certificate_unknown
-```
-
-Connect to Backend container and edit `/opt/back-end/java.security`: 
-
-```
-$ docker-compose exec backend nano /opt/back-end/java.security
-```
-
-Edit the trusted SPPIFE ID: 
-
-```
-# The spiffeID that will be trusted
-ssl.spiffe.accept=spiffe://example.org/front-end3
-```
-
-Restart Backend Tomcat and try again [http://localhost:9000/tasks](http://localhost:9000/tasks). 
-
-This time it should work.  
-
-##### 9. Test the Standalone Java App
-
-`sslCurl` is a standalone java app that uses the SPIFFE Provider to interact with services that require SVID to establish a mTLS connection.
-
-###### 9.1 Get data from the Services
-
-Connect to the _Frontend_ container: 
-
-```
-$ docker-compose exec frontend bash
-# cd /opt/sslCurl
-```
-
-Execute the script as `./sshCurl.sh {URL}`
-
-```
-# ./sslCurl.sh https://users-service:8443/users
-
-[{"id":1,"username":"user1@example.org"},{"id":2,"username":"user2@example.org"}]
-```
-
-```
-# ./sslCurl.sh https://backend:8443/projects/
-
-[{"id":1,"name":"SPIFFE"},{"id":2,"name":"SPIRE"},{"id":3,"name":"NGINX"}]
-```
-
-If you try to access the `/tasks` API on the _Backend_, you will not be authorized:
-
-```
-# ./sslCurl.sh https://backend:8443/tasks/
-
-HTTP Status 403 ? Forbidden
-```
-
-`sslCurl` has the SPIFFE ID `spiffe://example.org/front-end2` that is not authorized in the Tomcat Filter.
-
-##### 10. Test Authorization with OAuth2.0
-
-###### 10.1 Introduce WSO2-IS to SPIRE server
+###### 6.1 Introduce WSO2-IS to SPIRE server
 
 On the console run:
 ```
@@ -415,16 +205,22 @@ DEBU[0000] Requesting SVID for spiffe://example.org/wso2-is  subsystem_name=mana
 DEBU[0000] Requesting SVID for spiffe://example.org/host4  subsystem_name=manager
 INFO[0000] Starting workload API                         subsystem_name=endpoints
 ```
-Now the SPIRE Agent is running in the host4 and has started the workload API.
+Now the SPIRE Agent is running in the host4 and has started the workload API of WSO2 IS.
 
-###### 10.2 Start WSO2 IS
+###### 6.2 Start WSO2 IS
 ```
 $​​docker-compose exec wso2is /opt/wso2-authz/start-wso2.sh
 
 [2019-01-13 14:34:58,697]  INFO {org.wso2.carbon.core.internal.CarbonCoreActivator} -  Starting WSO2 Carbon...
 [2019-01-13 14:34:58,698]  INFO {org.wso2.carbon.core.internal.CarbonCoreActivator} -  Operating System : Linux 4.13.0-39-generic, amd64
+....
+
+[2019-01-16 13:07:35,461]  INFO {org.wso2.carbon.core.internal.StartupFinalizerServiceComponent} -  WSO2 Carbon started in 69 sec
 ```
 Once the server is started we will try to call the OAuth token endpoint to get a token based on the trust established with MTLS connection.
+
+
+###### 6.3 Execute cURL to get an OAuth2 token
 ```
 $ ​​docker-compose exec frontend bash
 
