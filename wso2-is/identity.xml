@@ -297,12 +297,21 @@
         <ScopeValidators>
             <ScopeValidator class="org.wso2.carbon.identity.oauth2.validators.JDBCScopeValidator" />
             <ScopeValidator class="org.wso2.carbon.identity.oauth2.validators.xacml.XACMLScopeValidator"/>
+            <ScopeValidator class="org.dvaara.wso2.identity.oauth2.scope.validator.OPAScopeValidator">
+                <Property name="OPA.Server.URL">https://opa.server</Property>
+                <Property name="OPA.Server.Username">admin</Property>
+                <Property name="OPA.Server.Password">admin</Property>
+            </ScopeValidator>>
         </ScopeValidators>
 
         <!-- Scope handlers list. The handlers registered here will be executed at the scope validation phase while
              issuing access tokens. -->
         <ScopeHandlers>
-            <ScopeHandler class="org.wso2.carbon.identity.oauth2.validators.OIDCScopeHandler" />
+            <!--ScopeHandler class="org.wso2.carbon.identity.oauth2.validators.OIDCScopeHandler" /-->
+            <ScopeHandler class="org.dvaara.wso2.identity.oauth2.scope.handler.OPAScopeHandler" />
+            <Property name="OPA.Server.URL">https://opa.server</Property>
+            <Property name="OPA.Server.Username">admin</Property>
+            <Property name="OPA.Server.Password">admin</Property>
         </ScopeHandlers>
 
         <!-- Assertions can be used to embedd parameters into access token. -->
