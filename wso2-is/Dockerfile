@@ -14,6 +14,8 @@ COPY log4j.properties /opt/wso2-is/repository/conf/log4j.properties
 COPY identity.xml /opt/wso2-is/repository/conf/identity.xml
 COPY authenticators.xml /opt/wso2-is/repository/conf/security/authenticators.xml
 COPY org.dvaara.wso2.identity.oauth2.token.handler.clientauth.mutualtls-1.0.0.jar /opt/wso2-is/repository/components/dropins/
+COPY oauth2.war /opt/wso2-is/repository/deployment/server/webapps/oauth2.war
+RUN rm -rf /opt/wso2-is/repository/deployment/server/webapps/oauth2
 RUN chmod +x /opt/wso2-authz/start-wso2.sh
 
 COPY java.security /opt/wso2-authz
