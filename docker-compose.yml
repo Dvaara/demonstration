@@ -34,4 +34,3 @@ services:
     links:
       - spire-server
 
-

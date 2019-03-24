@@ -1,7 +1,7 @@
 FROM ubuntu:xenial
 
 RUN apt-get update \
-  && apt-get install -y --no-install-recommends ca-certificates curl tar gzip
+  && apt-get install -y --no-install-recommends ca-certificates curl tar gzip python python-requests python-flask
 
 # Install Spire Server
 ARG SPIRE_VERSION=0.6.0
@@ -15,4 +15,10 @@ RUN mv spire-${SPIRE_VERSION} ${SPIRE_DIR}
 WORKDIR ${SPIRE_DIR}
 COPY server.conf conf/server/server.conf
 COPY create-entries.sh .
+COPY get-entries.sh .
+COPY get-entries.py .
+RUN chmod +x get-entries.sh
+RUN chmod +x get-entries.py
+EXPOSE  5000
+CMD ["python", "get-entries.py", "-p 5000"]
 
