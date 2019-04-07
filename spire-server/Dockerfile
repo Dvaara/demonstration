@@ -19,6 +19,4 @@ COPY get-entries.sh .
 COPY get-entries.py .
 RUN chmod +x get-entries.sh
 RUN chmod +x get-entries.py
-EXPOSE  5000
 CMD ["python", "get-entries.py", "-p 5000"]
-

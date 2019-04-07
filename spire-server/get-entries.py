@@ -43,4 +43,4 @@ def root(path):
     return "Success: found entries %s  \n" % j
 
 if __name__ == "__main__":
-    app.run()
+    app.run(host='0.0.0.0', port=5000)

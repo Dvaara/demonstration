@@ -4,6 +4,9 @@ services:
     build: ./spire-server
     hostname: spire-server
     tty: true
+    ports:
+    - "5000:5000"
+    - "8081:8081"
   backend:
     build: ./back-end
     hostname: back-end
@@ -18,7 +21,7 @@ services:
       - backend
       - users-service
     ports:
-    - 9000:9000
+    - "9000:9000"
   users-service:
     build: ./users-service
     hostname: users-service
@@ -30,7 +33,7 @@ services:
     hostname: wso2-is
     tty: true
     ports:
-    - 9443:9443
+    - "9443:9443"
     links:
       - spire-server
 
