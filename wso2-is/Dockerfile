@@ -11,11 +11,22 @@ RUN mkdir /opt/wso2-authz
 COPY start-wso2.sh /opt/wso2-authz
 COPY catalina-server.xml /opt/wso2-is/repository/conf/tomcat/catalina-server.xml
 COPY log4j.properties /opt/wso2-is/repository/conf/log4j.properties
-COPY identity.xml /opt/wso2-is/repository/conf/identity.xml
+COPY identity.xml /opt/wso2-is/repository/conf/identity/identity.xml
 COPY authenticators.xml /opt/wso2-is/repository/conf/security/authenticators.xml
 COPY org.dvaara.wso2.identity.oauth2.token.handler.clientauth.mutualtls-1.0.0.jar /opt/wso2-is/repository/components/dropins/
-COPY oauth2.war /opt/wso2-is/repository/deployment/server/webapps/oauth2.war
+COPY org.dvaara.wso2.identity.oauth2.scope-1.0.0.jar /opt/wso2-is/repository/components/lib/
+COPY jackson-databind-2.9.8.jar /opt/wso2-is/repository/components/lib/
+COPY jackson-core-2.9.8.jar /opt/wso2-is/repository/components/lib/
+COPY jackson-annotations-2.9.8.jar /opt/wso2-is/repository/components/lib/
+#COPY fluent-hc-4.5.jar /opt/wso2-is/repository/components/lib/
+#COPY httpclient-4.5.jar /opt/wso2-is/repository/components/lib/
 RUN rm -rf /opt/wso2-is/repository/deployment/server/webapps/oauth2
+RUN rm -rf /opt/wso2-is/repository/deployment/server/webapps/shindig.war
+RUN rm -rf /opt/wso2-is/repository/deployment/server/webapps/shindig
+RUN rm /opt/wso2-is/repository/components/plugins/httpclient_4.3.1.wso2v3.jar
+COPY oauth2.war /opt/wso2-is/repository/deployment/server/webapps/oauth2.war
+RUN mkdir /opt/wso2-is/repository/components/patches/patch9999
+COPY org.wso2.carbon.identity.oauth-6.0.53.jar /opt/wso2-is/repository/components/patches/patch9999/
 RUN chmod +x /opt/wso2-authz/start-wso2.sh
 
 COPY java.security /opt/wso2-authz

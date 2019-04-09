@@ -289,7 +289,8 @@
             <OAuthCallbackHandler Class="org.wso2.carbon.identity.oauth.callback.DefaultCallbackHandler"/>
         </OAuthCallbackHandlers>
         <TokenValidators>
-            <TokenValidator type="bearer" class="org.wso2.carbon.identity.oauth2.validators.DefaultOAuth2TokenValidator"/>
+            <TokenValidator type="bearer" class="org.dvaara.wso2.identity.oauth2.scope.validator.OPATokenValidator"/>
+            <!--<TokenValidator type="bearer" class="org.wso2.carbon.identity.oauth2.validators.DefaultOAuth2TokenValidator"/>-->
             <TokenValidator type="jwt" class="org.wso2.carbon.identity.oauth2.validators.OAuth2JWTTokenValidator"/>
         </TokenValidators>
 
@@ -297,11 +298,11 @@
         <ScopeValidators>
             <ScopeValidator class="org.wso2.carbon.identity.oauth2.validators.JDBCScopeValidator" />
             <ScopeValidator class="org.wso2.carbon.identity.oauth2.validators.xacml.XACMLScopeValidator"/>
-            <ScopeValidator class="org.dvaara.wso2.identity.oauth2.scope.validator.OPAScopeValidator">
-                <Property name="OPA.Server.URL">https://opa.server</Property>
-                <Property name="OPA.Server.Username">admin</Property>
-                <Property name="OPA.Server.Password">admin</Property>
-            </ScopeValidator>>
+            <!--<ScopeValidator class="org.dvaara.wso2.identity.oauth2.scope.validator.OPAScopeValidator">-->
+                <!--<Property name="OPA.Server.URL">https://opa.server</Property>-->
+                <!--<Property name="OPA.Server.Username">admin</Property>-->
+                <!--<Property name="OPA.Server.Password">admin</Property>-->
+            <!--</ScopeValidator>-->
         </ScopeValidators>
 
         <!-- Scope handlers list. The handlers registered here will be executed at the scope validation phase while

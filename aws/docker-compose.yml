@@ -1,0 +1,12 @@
+version: '3'
+services:
+  frontend:
+    build: ./front-end
+    tty: true
+    links:
+      - spire-server
+      - backend
+      - users-service
+    ports:
+    - 9000:9000
+

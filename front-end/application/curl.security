@@ -1,0 +1,10 @@
+# Adding provider
+security.provider.10=spiffe.provider.SpiffeProvider
+
+# Determines the default key and trust manager factory algorithms for
+# the javax.net.ssl package.
+ssl.KeyManagerFactory.algorithm=Spiffe
+ssl.TrustManagerFactory.algorithm=Spiffe
+
+# The list of spiffeIDs that will be authorized, separated by comma
+ssl.spiffe.accept=spiffe://example.org/wso2-is, spiffe://example.org/back-end
