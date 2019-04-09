@@ -17,7 +17,7 @@ fi
 if [ -n "$3" ]; then
     USERNAME="$3"
 else
-   USERNAME="frontend2"
+   USERNAME="backend"
 fi
 
 su -c "java -Djava.security.properties=curl.security -Dspiffe.endpoint.socket=/tmp/agent.sock -jar example-1.0-jar-with-dependencies.jar ${CURL_ARG} ${CURL_DATA}" ${USERNAME}

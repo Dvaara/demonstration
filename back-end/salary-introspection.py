@@ -27,7 +27,8 @@ def check_auth(url, user, method, user_agent, remote_addr,url_as_array, token):
         "path": url_as_array,
         "method": method,
 	    "user_agent": user_agent,
-	    "remote_addr": remote_addr
+	    "remote_addr": remote_addr,
+        "resource" : url
     }}
     if token is not None:
         input_dict["input"]["token"] = token
@@ -45,19 +46,21 @@ def check_auth(url, user, method, user_agent, remote_addr,url_as_array, token):
         logging.info(response)
     return response
 
-@app.route('/finance/salary', defaults={'path': ''}, methods = ['GET', 'POST', 'DELETE'])
+@app.route('/finance/salary/<username>', defaults={'path': ''}, methods = ['GET', 'POST', 'DELETE'])
 @app.route('/<path:path>', methods = ['GET', 'POST'])
-def root(path):
-    user_encoded = request.headers.get('Authorization', "Anonymous:none")
+def root(path, username):
+    # user_encoded = request.headers.get('Authorization', "Anonymous:none")
     logging.info("User Agent: %s" % request.user_agent.string)
     logging.info("Remote Address: %s" % request.remote_addr)
-    if user_encoded:
-        user_encoded = user_encoded.split("Basic ")[1]
-    user, _ = base64.b64decode(user_encoded).decode("utf-8").split(":")
-    url = opa_url + policy_path
-    path_as_array = path.split("/")
-    token = request.args["token"] if "token" in request.args else None
-    j = check_auth(url, user, request.method, request.user_agent.string, request.remote_addr, path_as_array, token)
+    logging.info("OAuth2.0 token: %s" % request.headers.get("Authorization"))
+    logging.info("Endpoint"+request.full_path)
+    logging.info("Args" + username)
+    if request.headers.get("Authorization"):
+        token = request.headers.get("Authorization").split("Bearer ")[1]
+    user = request.view_args["username"]
+    url = request.full_path.replace("?","")
+    # path_as_array = path.split("/")
+    j = check_auth(url, user, request.method, request.user_agent.string, request.remote_addr, path, token)
     if not j:
         return "Error: user %s is not authorized to %s url /%s \n" % (user, request.method, path)
     return "Success: user %s is authorized \n" % user

@@ -18,7 +18,7 @@ app = Flask(__name__)
 opa_url = os.environ.get("OPA_ADDR", "http://localhost:8181")
 policy_path = os.environ.get("POLICY_PATH", "/v1/data/httpapi/authz")
 wso2_is = os.environ.get("WSO2_IS, wso2is")
-salaries_endpoint = "http://backend:5003/finance/salary"
+salaries_endpoint = "http://backend:5003/finance/salary/bob"
 
 def get_token(scopes):
     logging.info("Requesting an oauth2 token...")

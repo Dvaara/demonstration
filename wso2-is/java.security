@@ -7,4 +7,4 @@ ssl.KeyManagerFactory.algorithm=Spiffe
 ssl.TrustManagerFactory.algorithm=Spiffe
 
 # The list of spiffeIDs that will be authorized, separated by comma
-ssl.spiffe.accept=spiffe://example.org/front-end1, spiffe://example.org/front-end2
+ssl.spiffe.accept=spiffe://example.org/front-end1, spiffe://example.org/front-end2, spiffe://example.org/back-end
