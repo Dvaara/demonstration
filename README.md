@@ -272,7 +272,7 @@ Execute below from another terminal to call simulate a call happening in employe
 curl http://localhost:5002/finance/salary/bob
 
 ```
-Now we can use this token to consume other workload who trust the WSO2 IS authorization server.
+Based on the policy defined in OPA engine, the request will be allowed or denied. This is demoed in the below video.
 ##### 7. Clean the environment 
 
 Stop the docker containers:
