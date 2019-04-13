@@ -253,4 +253,4 @@ Removing network spiffeenvoysidecar_default
 [![Dvaara in Action](demo.png)](https://youtu.be/JIqtuP21gMI)
 
 ### Slides
-[![Dvaara in Detail](slides.png)](https://www.slideshare.net/Pushpalanka/authorization-for-workloads-in-a-dynamically-scaling-heterogeneous-system)
+<iframe src="//www.slideshare.net/slideshow/embed_code/key/AX3DdoIXZzPkzs" width="595" height="485" frameborder="0" marginwidth="0" marginheight="0" scrolling="no" style="border:1px solid #CCC; border-width:1px; margin-bottom:5px; max-width: 100%;" allowfullscreen> </iframe> <div style="margin-bottom:5px"> <strong> <a href="//www.slideshare.net/Pushpalanka/authorization-for-workloads-in-a-dynamically-scaling-heterogeneous-system" title="Authorization for workloads in a dynamically scaling heterogeneous system" target="_blank">Authorization for workloads in a dynamically scaling heterogeneous system</a> </strong> from <strong><a href="https://www.slideshare.net/Pushpalanka" target="_blank">Pushpalanka Jayawardhana</a></strong> </div>
