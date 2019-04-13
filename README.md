@@ -249,3 +249,8 @@ Removing spiffeenvoysidecar_spire-server_1 ... done
 Removing network spiffeenvoysidecar_default
 ```
 
+### Demo
+[![Dvaara in Action](demo.png)](https://youtu.be/JIqtuP21gMI)
+
+### Slides
+[![Dvaara in Detail](slides.png)](https://www.slideshare.net/Pushpalanka/authorization-for-workloads-in-a-dynamically-scaling-heterogeneous-system)
