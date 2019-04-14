@@ -273,6 +273,7 @@ curl http://localhost:5002/finance/salary/bob
 
 ```
 Based on the policy defined in OPA engine, the request will be allowed or denied. This is demoed in the below video.
+The node agent can be modified to use AWS IID attestation to dynamically authenticate the workloads.
 ##### 7. Clean the environment 
 
 Stop the docker containers:
