@@ -23,7 +23,7 @@ This demo is composed of 3 containers
 - ssh cURL client with it's spire-agent at host2
 Below is the ultimate solution we are heading towards.
 
-![spiffe-tomcat-demo](spiffe-oauth.png)
+![spiffe-tomcat-demo](dvaara_design.png)
 
 WSO2 IS has a connector configured to listen on port 9443, to connect with mTLS, using the custom KeyStoreType `Spiffe`.
 That KeyStore connects with the Workload API to receive automatically the SVID updates that are used during the handshake
@@ -54,7 +54,7 @@ in this case of WSO2 IS.
 The following diagram shows a simplified version of the workloads only, with their SPIFFE IDs and the interactions between
 each other: 
 
-![diagram-simple](spiffe-wso2-oauth.png)
+![diagram-simple](dvaara_deployment.png)
 
 
 #### Registration Entries
@@ -62,9 +62,7 @@ each other:
 | Workload        | Selector      | SPIFFE ID                           | Parent ID                  |
 | ----------------| --------------|-------------------------------------| ---------------------------|
 | Back-end        | unix:uid:1000 | spiffe://example.org/back-end       | spiffe://example.org/host1 |
-| Front-end 1     | unix:uid:1000 | spiffe://example.org/front-end1     | spiffe://example.org/host2 | 
 | Front-end 2     | unix:uid:1001 | spiffe://example.org/front-end2     | spiffe://example.org/host2 | 
-| Proxy-Service   | unix:uid:1000 | spiffe://example.org/proxy-service  | spiffe://example.org/host3 | 
 | WSO2-IS         | unix:uid:1002 | spiffe://example.org/wso2-is        | spiffe://example.org/host4 |
 
 In this demo we are only making use of Front-end 2 and WSO2-IS workloads.
@@ -147,13 +145,6 @@ Parent ID:	spiffe://example.org/host2
 TTL:		120
 Selector:	unix:uid:1001
 
-+ ./spire-server entry create -parentID spiffe://example.org/host3 -spiffeID spiffe://example.org/proxy-service -selector unix:uid:1000 -ttl 120
-Entry ID:	dabc746b-3a68-40ca-893d-0aa062d125a6
-SPIFFE ID:	spiffe://example.org/proxy-service
-Parent ID:	spiffe://example.org/host3
-TTL:		120
-Selector:	unix:uid:1000
-
 + ./spire-server entry create -parentID spiffe://example.org/host4 -spiffeID spiffe://example.org/wso2-is -selector unix:uid:1002 -ttl 120
 Entry ID:	aabc746a-3a68-40ca-cccc-0aa062d12588
 SPIFFE ID:	spiffe://example.org/wso2-is
@@ -181,6 +172,24 @@ Copy the token and run:
 
 DEBU[0000] Requesting SVID for spiffe://example.org/front-end  subsystem_name=manager
 DEBU[0000] Requesting SVID for spiffe://example.org/host2  subsystem_name=manager
+INFO[0000] Starting workload API                         subsystem_name=endpoints
+```
+###### 5.2 Generate Agent Token for Back-end SSH cURL client and Run the Agent
+
+On the console run:
+```
+$ docker-compose exec spire-server ./spire-server token generate -spiffeID spiffe://example.org/host1
+
+Token: 63274343-ddcd-4403-862c-325fe599fdre
+```
+
+Copy the token and run:
+
+```
+# docker-compose exec backend ./spire-agent run -joinToken  {token}
+
+DEBU[0000] Requesting SVID for spiffe://example.org/back-end  subsystem_name=manager
+DEBU[0000] Requesting SVID for spiffe://example.org/host1  subsystem_name=manager
 INFO[0000] Starting workload API                         subsystem_name=endpoints
 ```
 
@@ -220,19 +229,52 @@ $​​docker-compose exec wso2is /opt/wso2-authz/start-wso2.sh
 Once the server is started we will try to call the OAuth token endpoint to get a token based on the trust established with MTLS connection.
 
 
-###### 6.3 Execute cURL to get an OAuth2 token
+###### 6.3 Execute cURL to access workload2(employee-dashboard) which will consume workload1(salary-introspection) 
 ```
 $ ​​docker-compose exec frontend bash
 
-# cd /opt/sslCurl
+# cd /opt/sslCurl/application/
 
-​​#./sslCurl2.sh https://wso2is:9443/oauth2/token​
-Jan 13, 2019 11:09:00 AM spiffe.provider.CertificateUtils checkSpiffeId
+​​#python employees-token.py​
+root@c1ecc18d4768:/opt/sslCurl/application# python employees-token.py 
+INFO:werkzeug: * Running on http://0.0.0.0:5002/ (Press CTRL+C to quit)
+INFO:root:Requesting an oauth2 token...
+INFO:root:Bach command:./sslCurl2.sh https://wso2is:9443/oauth2/token grant_type=client_credentials
+Apr 13, 2019 2:42:17 PM spiffe.provider.CertificateUtils checkSpiffeId
 INFO: SPIFFE ID received Optional[spiffe://example.org/wso2-is]
-{"access_token":"e06f11d3-833d-35a3-9548-ab65cdbc5458","token_type":"Bearer","expires_in":3600}
+INFO:root:Token Response: {"access_token":"2fb802a7-daf1-31bf-a067-c8c1e89ad05e","token_type":"Bearer","expires_in":3600}
+
+INFO:root:Token response:2fb802a7-daf1-31bf-a067-c8c1e89ad05e
+INFO:requests.packages.urllib3.connectionpool:Starting new HTTP connection (1): backend
+DEBUG:requests.packages.urllib3.connectionpool:"GET /finance/salary/bob HTTP/1.1" 401 14
+INFO:werkzeug:172.24.0.1 - - [13/Apr/2019 14:42:20] "GET /finance/salary/bob HTTP/1.1" 200 -
+
+
+In another termincal run the back end
+$ ​​docker-compose exec backend bash
+
+# cd /opt/back-end
+INFO:root:User Agent: python-requests/2.9.1
+INFO:root:Remote Address: 172.24.0.5
+INFO:root:OAuth2.0 token: Bearer 2fb802a7-daf1-31bf-a067-c8c1e89ad05e
+INFO:root:Endpoint/finance/salary/bob?
+INFO:root:Argsbob
+INFO:root:MethodPOST
+INFO:root:Checking auth...
+INFO:root:"dummy#value@method#POST@user_agent#python-requests/2.9.1@remote_addr#172.24.0.5@resource#/finance/salary/bob@user#bob"
+Apr 13, 2019 2:43:00 PM spiffe.provider.CertificateUtils checkSpiffeId
+INFO: SPIFFE ID received Optional[spiffe://example.org/wso2-is]
+INFO:root:command '['bash', '-c', u'./sslCurl2.sh https://wso2is:9443/oauth2/introspect token=2fb802a7-daf1-31bf-a067-c8c1e89ad05e headers=dummy#value@method#POST@user_agent#python-requests/2.9.1@remote_addr#172.24.0.5@resource#/finance/salary/bob@user#bob']' return with response (code 1): {"active":false}
+
+INFO:root:False
+
+Execute below from another terminal to call simulate a call happening in employee-dashboard
+curl http://localhost:5002/finance/salary/bob
+
 ```
-Now we can use this token to consume other workload who trust the WSO2 IS authorization server.
-##### 11. Clean the environment 
+Based on the policy defined in OPA engine, the request will be allowed or denied. This is demoed in the below video.
+The node agent can be modified to use AWS IID attestation to dynamically authenticate the workloads.
+##### 7. Clean the environment 
 
 Stop the docker containers:
 
@@ -249,3 +291,8 @@ Removing spiffeenvoysidecar_spire-server_1 ... done
 Removing network spiffeenvoysidecar_default
 ```
 
+### Demo video
+[![Dvaara in Action](demo.png)](https://youtu.be/JIqtuP21gMI)
+
+### Dvaara in Detail
+[![Dvaara in Detail](slides.png)](https://www.slideshare.net/Pushpalanka/authorization-for-workloads-in-a-dynamically-scaling-heterogeneous-system)
